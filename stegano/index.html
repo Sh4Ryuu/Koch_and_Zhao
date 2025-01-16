@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCT Steganography</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 5px;
+            width: 100%;
+        }
+        #encodedImage, #downloadLink {
+            max-width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>DCT Steganography</h1>
+
+    <h2>Insert Message</h2>
+    <input type="file" id="inputImage" accept="image/*">
+    <input type="text" id="inputMessage" placeholder="Message to hide">
+    <input type="number" id="inputKey" placeholder="Secret Key">
+    <button onclick="insertMessage()">Insert Message</button>
+    <p id="insertResult"></p>
+    <img id="encodedImage" src="" style="display:none;">
+    <a id="downloadLink" style="display:none;" download>Download Hidden Image</a>
+
+    <h2>Extract Message</h2>
+    <input type="file" id="extractImage" accept="image/*">
+    <input type="number" id="extractKey" placeholder="Secret Key">
+    <input type="number" id="messageLength" placeholder="Message Length">
+    <button onclick="extractMessage()">Extract Message</button>
+    <p id="extractResult"></p>
+
+    <script>
+        async function insertMessage() {
+            const image = document.getElementById('inputImage').files[0];
+            const message = document.getElementById('inputMessage').value;
+            const key = document.getElementById('inputKey').value;
+
+            if (!image || !message || !key) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', image);
+            formData.append('message', message);
+            formData.append('key', key);
+
+            try {
+                const response = await fetch('/insert', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    const encodedImg = document.getElementById('encodedImage');
+                    const downloadLink = document.getElementById('downloadLink');
+                    encodedImg.src = `data:image/png;base64,${data.image}`;
+                    encodedImg.style.display = 'block';
+                    
+                    // Setup download link
+                    downloadLink.href = `/uploads/${data.filename}`;
+                    downloadLink.textContent = `Download ${data.filename}`;
+                    downloadLink.style.display = 'block';
+
+                    document.getElementById('insertResult').textContent = `Message inserted successfully! Image saved as ${data.filename}`;
+                } else {
+                    document.getElementById('insertResult').textContent = `Error: ${data.message}`;
+                }
+            } catch (error) {
+                document.getElementById('insertResult').textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function extractMessage() {
+            const image = document.getElementById('extractImage').files[0];
+            const key = document.getElementById('extractKey').value;
+            const messageLength = document.getElementById('messageLength').value;
+
+            if (!image || !key || !messageLength) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', image);
+            formData.append('key', key);
+            formData.append('message_length', messageLength);
+
+            try {
+                const response = await fetch('/extract', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    document.getElementById('extractResult').textContent = `Extracted Message: ${data.message}`;
+                } else {
+                    document.getElementById('extractResult').textContent = `Error: ${data.message}`;
+                }
+            } catch (error) {
+                document.getElementById('extractResult').textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
